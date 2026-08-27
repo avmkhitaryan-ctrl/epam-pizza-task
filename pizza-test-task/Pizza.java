@@ -16,6 +16,9 @@ public class Pizza {
     private final int quantity;
 
     public Pizza(String name, PizzaType type, int quantity) {
+        if (type == null) {
+            throw new IllegalArgumentException("Pizza type cannot be null.");
+        }
         this.type = type;
         this.quantity = validateQuantity(quantity);
         this.nameWasValid = isNameValid(name);
@@ -47,6 +50,10 @@ public class Pizza {
     }
 
     public boolean addIngredient(Ingredient ingredient) {
+        if (ingredient == null) {
+            System.out.println("Ingredient cannot be null.");
+            return false;
+        }
         if (ingredientCount >= MAX_INGREDIENTS) {
             System.out.println("Pizza \"" + name + "\" is already full, cannot add \""
                     + ingredient.getDisplayName() + "\".");

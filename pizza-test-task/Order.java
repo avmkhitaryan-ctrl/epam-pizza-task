@@ -1,3 +1,6 @@
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.time.LocalTime;
 import java.util.Locale;
 
@@ -57,10 +60,24 @@ public class Order {
         return true;
     }
 
-    /**
-     * Part 3: prints the full invoice for this order.
-     */
     public void printCheck() {
+        System.out.println(buildReceiptContent());
+    }
+
+    public void printCheckToFile(String filePath) {
+        if (filePath == null || filePath.isBlank()) {
+            System.out.println("Invalid file path for receipt.");
+            return;
+        }
+        try (PrintWriter writer = new PrintWriter(new FileWriter(filePath))) {
+            writer.print(buildReceiptContent());
+            System.out.println("Receipt saved to " + filePath);
+        } catch (IOException e) {
+            System.out.println("Could not write receipt to \"" + filePath + "\": " + e.getMessage());
+        }
+    }
+
+    private String buildReceiptContent() {
         StringBuilder sb = new StringBuilder();
         double totalAmount = 0.0;
 
@@ -94,7 +111,7 @@ public class Order {
         sb.append(String.format(Locale.US, "Total amount: %.2f $%n", totalAmount));
         sb.append("********************************");
 
-        System.out.println(sb);
+        return sb.toString();
     }
 
     private String formatLine(String label, double price) {

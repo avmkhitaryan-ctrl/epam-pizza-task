@@ -1,49 +1,115 @@
+import java.io.BufferedReader;
+import java.io.EOFException;
+import java.io.IOException;
+import java.io.InputStreamReader;
+
 public class Main {
-    public static void main(String[] args) {
 
-        Order order1 = new Order(7717);
+    public static void main(String[] args) throws IOException {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(System.in))) {
 
-        Pizza margarita = new Pizza("Margarita", PizzaType.CALZONE, 2);
-        margarita.addIngredient(Ingredient.TOMATO_PASTE);
-        margarita.addIngredient(Ingredient.PEPPERONI);
-        margarita.addIngredient(Ingredient.GARLIC);
-        margarita.addIngredient(Ingredient.BACON);
-        order1.addPizza(margarita);
+            boolean placeAnotherOrder = true;
+            while (placeAnotherOrder) {
+                Order order = buildOrderFromConsole(reader);
+                order.printCheck();
+                String fileName = "receipt_" + order.getOrderNumber() + ".txt";
+                order.printCheckToFile(fileName);
 
-        Pizza pepperoniOro = new Pizza("PepperoniOro", PizzaType.REGULAR, 3);
-        pepperoniOro.addIngredient(Ingredient.TOMATO_PASTE);
-        pepperoniOro.addIngredient(Ingredient.CHEESE);
-        pepperoniOro.addIngredient(Ingredient.PEPPERONI);
-        pepperoniOro.addIngredient(Ingredient.OLIVES);
-        order1.addPizza(pepperoniOro);
+                System.out.println();
+                placeAnotherOrder = readYesNo(reader, "Place another order? (y/n): ");
+            }
 
-        // Demonstrate duplicate-ingredient protection
-        pepperoniOro.addIngredient(Ingredient.CHEESE);
+            System.out.println("Thank you for ordering at Pizzeria Palmetto!");
+        } catch (EOFException e) {
+            System.out.println();
+            System.out.println("No more input received. Exiting.");
+        }
+    }
 
-        // Demonstrate "pizza is full" protection
-        Pizza fullPizza = new Pizza("StressTest", PizzaType.REGULAR, 1);
-        fullPizza.addIngredient(Ingredient.TOMATO_PASTE);
-        fullPizza.addIngredient(Ingredient.CHEESE);
-        fullPizza.addIngredient(Ingredient.SALAMI);
-        fullPizza.addIngredient(Ingredient.BACON);
-        fullPizza.addIngredient(Ingredient.GARLIC);
-        fullPizza.addIngredient(Ingredient.CORN);
-        fullPizza.addIngredient(Ingredient.PEPPERONI);
-        fullPizza.addIngredient(Ingredient.OLIVES);
-        fullPizza.addIngredient(Ingredient.TOMATO_PASTE); // already full -> prints message
+    private static Order buildOrderFromConsole(BufferedReader reader) throws IOException {
+        int customerNumber = readInt(reader, "Enter customer number: ");
+        Order order = new Order(customerNumber);
 
-        // Demonstrate invalid-name fallback ("ab" is shorter than 4 characters)
-        Pizza badName = new Pizza("ab", PizzaType.REGULAR, 1);
-        order1.addPizza(badName);
+        boolean addAnotherPizza = true;
+        while (addAnotherPizza) {
+            String name = readLine(reader, "Enter pizza name (4-20 Latin letters, or leave blank for auto-name): ");
+            PizzaType type = readPizzaType(reader, "Enter pizza type (REGULAR/CALZONE): ");
+            int quantity = readInt(reader, "Enter quantity (1-10): ");
 
-        order1.printCheck();
+            Pizza pizza = new Pizza(name, type, quantity);
 
-        System.out.println();
+            String ingredientsLine = readLine(reader,
+                    "Enter ingredients separated by comma (e.g. TOMATO_PASTE,CHEESE,BACON), or leave blank: ");
+            addIngredientsFromInput(pizza, ingredientsLine);
 
-        // ---- Customer 4372: 12x "BasePZZ" (Regular) -> exceeds max of 10 ----
-        Order order2 = new Order(4372);
-        Pizza basePZZ = new Pizza("BasePZZ", PizzaType.REGULAR, 12);
-        order2.addPizza(basePZZ);
-        order2.printCheck();
+            order.addPizza(pizza);
+
+            addAnotherPizza = readYesNo(reader, "Add another pizza to this order? (y/n): ");
+        }
+
+        return order;
+    }
+
+    private static void addIngredientsFromInput(Pizza pizza, String ingredientsLine) {
+        if (ingredientsLine == null || ingredientsLine.isBlank()) {
+            return;
+        }
+        String[] tokens = ingredientsLine.split(",");
+        for (String token : tokens) {
+            String normalized = token.trim().toUpperCase().replace(' ', '_');
+            if (normalized.isEmpty()) {
+                continue;
+            }
+            try {
+                Ingredient ingredient = Ingredient.valueOf(normalized);
+                pizza.addIngredient(ingredient);
+            } catch (IllegalArgumentException e) {
+                System.out.println("Unknown ingredient \"" + token.trim() + "\" was skipped.");
+            }
+        }
+    }
+
+    private static String readLine(BufferedReader reader, String prompt) throws IOException {
+        System.out.print(prompt);
+        String line = reader.readLine();
+        if (line == null) {
+            throw new EOFException("No more input available.");
+        }
+        return line.trim();
+    }
+
+    private static int readInt(BufferedReader reader, String prompt) throws IOException {
+        while (true) {
+            String line = readLine(reader, prompt);
+            try {
+                return Integer.parseInt(line);
+            } catch (NumberFormatException e) {
+                System.out.println("Please enter a valid whole number.");
+            }
+        }
+    }
+
+    private static PizzaType readPizzaType(BufferedReader reader, String prompt) throws IOException {
+        while (true) {
+            String line = readLine(reader, prompt);
+            try {
+                return PizzaType.valueOf(line.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                System.out.println("Please enter either REGULAR or CALZONE.");
+            }
+        }
+    }
+
+    private static boolean readYesNo(BufferedReader reader, String prompt) throws IOException {
+        while (true) {
+            String line = readLine(reader, prompt).toLowerCase();
+            if (line.equals("y") || line.equals("yes")) {
+                return true;
+            }
+            if (line.equals("n") || line.equals("no")) {
+                return false;
+            }
+            System.out.println("Please answer y or n.");
+        }
     }
 }
